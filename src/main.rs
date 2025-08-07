@@ -71,9 +71,8 @@ impl Application for DevTools {
 impl DevTools {
     fn sidebar(&self) -> Element<Message> {
         let all_tools = vec![
-            (ToolType::Base64, "Base64", "Converters"),
             (ToolType::Json, "JSON", "Converters"),
-            (ToolType::Base64, "Base64 Text", "Encoders / Decoders"),
+            (ToolType::Base64, "Base64", "Encoders / Decoders"),
             (ToolType::Url, "URL", "Encoders / Decoders"),
             (ToolType::Hash, "Hash / Checksum", "Generators"),
             (ToolType::Uuid, "UUID", "Generators"),
