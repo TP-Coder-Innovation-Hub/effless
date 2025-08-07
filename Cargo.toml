@@ -1,0 +1,20 @@
+[package]
+name = "effless"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced = "0.10"
+base64 = "0.22"
+uuid = { version = "1.6", features = ["v4"] }
+ulid = "1.1"
+qrcode = "0.14"
+image = "0.24"
+serde_json = "1.0"
+sha2 = "0.10"
+md5 = "0.7"
+url = "2.4"
+percent-encoding = "2.3"
+arboard = "3.4"
+tokio = { version = "1.0", features = ["full"] }
+tracing-subscriber = "0.3.19"
