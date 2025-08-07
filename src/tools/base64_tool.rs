@@ -1,9 +1,9 @@
-use iced::{
-    widget::{button, column, container, row, text, text_input, scrollable, Column},
-    Element, Length,
-};
-use base64::{Engine as _, engine::general_purpose};
 use arboard::Clipboard;
+use base64::{Engine as _, engine::general_purpose};
+use iced::{
+    Element, Length,
+    widget::{button, column, container, row, scrollable, text, text_input, Column},
+};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -36,24 +36,20 @@ impl Base64Tool {
                 self.output = general_purpose::STANDARD.encode(&self.input);
                 self.error = None;
             }
-            Message::Decode => {
-                match general_purpose::STANDARD.decode(&self.input) {
-                    Ok(decoded) => {
-                        match String::from_utf8(decoded) {
-                            Ok(text) => {
-                                self.output = text;
-                                self.error = None;
-                            }
-                            Err(_) => {
-                                self.error = Some("Invalid UTF-8 in decoded data".to_string());
-                            }
-                        }
+            Message::Decode => match general_purpose::STANDARD.decode(&self.input) {
+                Ok(decoded) => match String::from_utf8(decoded) {
+                    Ok(text) => {
+                        self.output = text;
+                        self.error = None;
                     }
                     Err(_) => {
-                        self.error = Some("Invalid Base64 input".to_string());
+                        self.error = Some("Invalid UTF-8 in decoded data".to_string());
                     }
+                },
+                Err(_) => {
+                    self.error = Some("Invalid Base64 input".to_string());
                 }
-            }
+            },
             Message::Clear => {
                 self.input.clear();
                 self.output.clear();
@@ -101,15 +97,11 @@ impl Base64Tool {
                         .padding([5, 10]),
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center),
                 container(
-                    scrollable(
-                        text_input("", &self.output)
-                            .size(14)
-                    )
-                    .height(Length::Fixed(100.0))
+                    scrollable(text_input("", &self.output).size(14)).height(Length::Fixed(100.0))
                 )
-                .style(iced::theme::Container::Box)
+                .style(container::rounded_box)
                 .padding(10)
                 .width(Length::Fill),
             ]
@@ -117,12 +109,12 @@ impl Base64Tool {
         } else {
             column![
                 text("Output").size(16),
-                container(
-                    text("Result will appear here...")
-                        .size(14)
-                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6)))
-                )
-                .style(iced::theme::Container::Box)
+                container(text("Result will appear here...").size(14).style(
+|_theme| iced::widget::text::Style {
+                        color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                    }
+                ))
+                .style(container::rounded_box)
                 .padding(10)
                 .width(Length::Fill)
                 .height(Length::Fixed(100.0)),
@@ -138,11 +130,11 @@ impl Base64Tool {
             .push(output_section);
 
         if let Some(error) = &self.error {
-            content = content.push(
-                text(error)
-                    .size(14)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.8, 0.2, 0.2)))
-            );
+            content = content.push(text(error).size(14).style(
+|_theme| iced::widget::text::Style {
+                    color: Some(iced::Color::from_rgb(0.8, 0.2, 0.2))
+                },
+            ));
         }
 
         container(content)

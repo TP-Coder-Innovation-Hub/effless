@@ -4,17 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-iced = "0.10"
+iced = { version = "0.13.1", features = ["advanced", "image"] }
 base64 = "0.22"
 uuid = { version = "1.6", features = ["v4"] }
 ulid = "1.1"
 qrcode = "0.14"
-image = "0.24"
+image = "0.25.6"
 serde_json = "1.0"
 sha2 = "0.10"
-md5 = "0.7"
+md5 = "0.8.0"
 url = "2.4"
 percent-encoding = "2.3"
 arboard = "3.4"
 tokio = { version = "1.0", features = ["full"] }
 tracing-subscriber = "0.3.19"
+rfd = "0.15.4"
+ico = "0.4.0"
+chrono = "0.4"

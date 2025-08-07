@@ -1,6 +1,6 @@
 use iced::{
-    widget::{button, column, container, row, text, text_input, Column},
     Element, Length,
+    widget::{button, column, container, row, text, text_input, Column},
 };
 
 #[derive(Debug, Clone)]
@@ -46,18 +46,16 @@ impl DistanceTool {
                 self.lon2 = value;
                 self.error = None;
             }
-            Message::Calculate => {
-                match self.calculate_distance() {
-                    Ok(distance) => {
-                        self.result = format!("{:.2} km ({:.2} miles)", distance, distance * 0.621371);
-                        self.error = None;
-                    }
-                    Err(e) => {
-                        self.error = Some(e);
-                        self.result.clear();
-                    }
+            Message::Calculate => match self.calculate_distance() {
+                Ok(distance) => {
+                    self.result = format!("{:.2} km ({:.2} miles)", distance, distance * 0.621371);
+                    self.error = None;
                 }
-            }
+                Err(e) => {
+                    self.error = Some(e);
+                    self.result.clear();
+                }
+            },
             Message::Clear => {
                 self.lat1.clear();
                 self.lon1.clear();
@@ -79,10 +77,10 @@ impl DistanceTool {
         let r = 6371.0; // Earth's radius in km
         let dlat = (lat2 - lat1).to_radians();
         let dlon = (lon2 - lon1).to_radians();
-        let a = (dlat / 2.0).sin().powi(2) 
+        let a = (dlat / 2.0).sin().powi(2)
             + lat1.to_radians().cos() * lat2.to_radians().cos() * (dlon / 2.0).sin().powi(2);
         let c = 2.0 * a.sqrt().asin();
-        
+
         Ok(r * c)
     }
 
@@ -132,13 +130,10 @@ impl DistanceTool {
         let result_section = if !self.result.is_empty() {
             column![
                 text("Distance").size(16),
-                container(
-                    text_input("", &self.result)
-                        .size(14)
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
+                container(text_input("", &self.result).size(14))
+                    .style(container::rounded_box)
+                    .padding(10)
+                    .width(Length::Fill),
             ]
             .spacing(5)
         } else {
@@ -155,11 +150,11 @@ impl DistanceTool {
             .push(result_section);
 
         if let Some(error) = &self.error {
-            content = content.push(
-                text(error)
-                    .size(14)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.8, 0.2, 0.2)))
-            );
+            content = content.push(text(error).size(14).style(
+|_theme| iced::widget::text::Style {
+                    color: Some(iced::Color::from_rgb(0.8, 0.2, 0.2))
+                }
+            ));
         }
 
         container(content)

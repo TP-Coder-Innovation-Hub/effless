@@ -1,14 +1,15 @@
 use iced::Element;
 
 pub mod base64_tool;
-pub mod json_tool;
-pub mod uuid_tool;
-pub mod hash_tool;
-pub mod ulid_tool;
-pub mod qr_tool;
 pub mod distance_tool;
+pub mod hash_tool;
+pub mod icon;
+pub mod json_tool;
+pub mod qr_tool;
 pub mod system_design_tool;
+pub mod ulid_tool;
 pub mod url_tool;
+pub mod uuid_tool;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolType {
@@ -21,6 +22,7 @@ pub enum ToolType {
     Distance,
     SystemDesign,
     Url,
+    Icon,
 }
 
 impl Default for ToolType {
@@ -40,6 +42,7 @@ pub enum Message {
     Distance(distance_tool::Message),
     SystemDesign(system_design_tool::Message),
     Url(url_tool::Message),
+    Icon(icon::Message),
 }
 
 pub enum Tool {
@@ -52,6 +55,7 @@ pub enum Tool {
     Distance(distance_tool::DistanceTool),
     SystemDesign(system_design_tool::SystemDesignTool),
     Url(url_tool::UrlTool),
+    Icon(icon::IconTool),
 }
 
 impl Tool {
@@ -64,8 +68,11 @@ impl Tool {
             ToolType::Ulid => Tool::Ulid(ulid_tool::UlidTool::new()),
             ToolType::QrCode => Tool::QrCode(qr_tool::QrTool::new()),
             ToolType::Distance => Tool::Distance(distance_tool::DistanceTool::new()),
-            ToolType::SystemDesign => Tool::SystemDesign(system_design_tool::SystemDesignTool::new()),
+            ToolType::SystemDesign => {
+                Tool::SystemDesign(system_design_tool::SystemDesignTool::new())
+            }
             ToolType::Url => Tool::Url(url_tool::UrlTool::new()),
+            ToolType::Icon => Tool::Icon(icon::IconTool::new()),
         }
     }
 
@@ -80,6 +87,7 @@ impl Tool {
             (Tool::Distance(tool), Message::Distance(msg)) => tool.update(msg),
             (Tool::SystemDesign(tool), Message::SystemDesign(msg)) => tool.update(msg),
             (Tool::Url(tool), Message::Url(msg)) => tool.update(msg),
+            (Tool::Icon(tool), Message::Icon(msg)) => tool.update(msg),
             _ => {}
         }
     }
@@ -95,6 +103,7 @@ impl Tool {
             Tool::Distance(tool) => tool.view().map(Message::Distance),
             Tool::SystemDesign(tool) => tool.view().map(Message::SystemDesign),
             Tool::Url(tool) => tool.view().map(Message::Url),
+            Tool::Icon(tool) => tool.view().map(Message::Icon),
         }
     }
 }
