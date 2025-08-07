@@ -57,14 +57,18 @@ Each tool follows a consistent pattern:
 - **UUID**: UUID v4 generation (Generators category)
 - **ULID**: ULID generation for distributed systems (Generators category)
 - **QR Code**: QR code generator with image output (Generators category)
+- **Icon Generator**: Simple icon generator with text and shape selection (circle, square), customizable colors and sizes, with PNG/ICO download support (Generators category)
 - **Distance**: Haversine distance calculator for geographical coordinates (Calculators category)
 - **System Design**: Back-of-the-envelope calculations for system architecture planning with DAU, read/write ratios, and storage estimation (System Design category)
 
 ### Key Dependencies
-- `iced`: GUI framework (v0.10)
+- `iced`: GUI framework (v0.13.1)
 - `tokio`: Async runtime
 - `arboard`: Clipboard integration
-- Tool-specific crates: `base64`, `serde_json`, `uuid`, `ulid`, `qrcode`, `sha2`, `md5`, `url`
+- `image`: Image processing for icon generation
+- `rfd`: Native file dialog for downloads
+- `ico`: ICO format conversion
+- Tool-specific crates: `base64`, `serde_json`, `uuid`, `ulid`, `qrcode`, `sha2`, `md5`, `url`, `chrono`
 
 ### Adding New Tools
 1. Create new module in `src/tools/`
@@ -109,3 +113,31 @@ Comprehensive test suite covers:
 - Edge cases (zero DAU, large data sizes)
 - Error conditions (invalid ratios, malformed inputs)
 - High read ratio scenarios (10:1, 100:1 patterns)
+
+## Icon Generator Tool Details
+
+The Icon Generator tool creates simple icons with text overlays on colored backgrounds:
+
+### Key Features
+- **Text Input**: Up to 3 characters maximum for optimal icon readability
+- **Shape Selection**: Circle or square background shapes
+- **Size Customization**: Configurable icon size in pixels (default 128px)
+- **Color Customization**: Hex color picker for background and text colors
+- **Live Preview**: Real-time preview of generated icons
+- **Multi-format Export**: Download as PNG or ICO formats
+- **Base64 Export**: Copy Base64-encoded icon data to clipboard
+- **Crash Protection**: Comprehensive error handling prevents application crashes
+
+### Technical Implementation
+- **Bitmap Font Rendering**: Custom 5x7 pixel bitmap patterns for A-Z and 0-9 characters
+- **Dynamic Font Sizing**: Automatic scaling based on character count and icon size
+- **Pixel-perfect Drawing**: Direct pixel manipulation for crisp text rendering
+- **Character Spacing**: Proper spacing algorithm for multi-character icons
+- **Shape Rendering**: Mathematical circle and square background generation
+- **Format Conversion**: PNG to ICO conversion for Windows compatibility
+
+### Usage Guidelines
+- Keep text short (1-3 characters) for best results
+- Use high contrast between background and text colors
+- Recommended sizes: 16px, 32px, 64px, 128px, 256px for standard icon usage
+- ICO format recommended for Windows applications, PNG for web/cross-platform
