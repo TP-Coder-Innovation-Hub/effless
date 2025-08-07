@@ -1,6 +1,6 @@
 use iced::{
-    widget::{button, column, container, text, text_input, Column},
     Element, Length,
+    widget::{button, column, container, text, text_input, Column},
 };
 
 #[derive(Debug, Clone)]
@@ -56,11 +56,7 @@ impl QrTool {
             .padding(10);
 
         let output_section = if !self.status.is_empty() {
-            column![
-                text("Status").size(16),
-                text(&self.status).size(14),
-            ]
-            .spacing(5)
+            column![text("Status").size(16), text(&self.status).size(14),].spacing(5)
         } else {
             column![]
         };

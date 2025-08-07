@@ -1,10 +1,10 @@
-use iced::{
-    widget::{button, column, container, pick_list, row, text, text_input, scrollable, Column},
-    Element, Length,
-};
-use sha2::{Digest, Sha256, Sha512};
-use md5;
 use arboard::Clipboard;
+use iced::{
+    Element, Length,
+    widget::{button, column, container, pick_list, row, text, text_input, Column},
+};
+use md5;
+use sha2::{Digest, Sha256, Sha512};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HashType {
@@ -112,9 +112,13 @@ impl HashTool {
 
         let hash_type_picker = column![
             text("Hash Algorithm").size(16),
-            pick_list(&HashType::ALL[..], Some(self.hash_type), Message::HashTypeSelected)
-                .padding(10)
-                .text_size(14),
+            pick_list(
+                &HashType::ALL[..],
+                Some(self.hash_type),
+                Message::HashTypeSelected
+            )
+            .padding(10)
+            .text_size(14),
         ]
         .spacing(5);
 
@@ -137,25 +141,22 @@ impl HashTool {
                         .padding([5, 10]),
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
-                container(
-                    text_input("", &self.output)
-                        .size(14)
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
+                .align_y(iced::Alignment::Center),
+                container(text_input("", &self.output).size(14))
+                    .style(container::rounded_box)
+                    .padding(10)
+                    .width(Length::Fill),
             ]
             .spacing(5)
         } else {
             column![
                 text("Hash Result").size(16),
-                container(
-                    text("Hash will appear here...")
-                        .size(14)
-                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6)))
-                )
-                .style(iced::theme::Container::Box)
+                container(text("Hash will appear here...").size(14).style(
+|_theme| iced::widget::text::Style {
+                        color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                    }
+                ))
+                .style(container::rounded_box)
                 .padding(10)
                 .width(Length::Fill),
             ]

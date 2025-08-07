@@ -1,9 +1,9 @@
+use arboard::Clipboard;
 use iced::{
-    widget::{button, column, container, row, text, text_input, scrollable, Column},
     Element, Length,
+    widget::{button, column, container, row, text, text_input, Column},
 };
 use uuid::Uuid;
-use arboard::Clipboard;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -70,17 +70,16 @@ impl UuidTool {
                         .padding([5, 10]),
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
-                container(
-                    text_input("", &self.generated_uuid)
-                        .size(14)
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
+                .align_y(iced::Alignment::Center),
+                container(text_input("", &self.generated_uuid).size(14))
+                    .style(container::rounded_box)
+                    .padding(10)
+                    .width(Length::Fill),
                 text(format!("Total generated: {}", self.count))
                     .size(12)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6))),
+                    .style(|_theme| iced::widget::text::Style {
+                        color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                    }),
             ]
             .spacing(5)
         } else {
@@ -89,9 +88,11 @@ impl UuidTool {
                 container(
                     text("Click 'Generate UUID' to create a new UUID")
                         .size(14)
-                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6)))
+                        .style(|_theme| iced::widget::text::Style {
+                            color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                        })
                 )
-                .style(iced::theme::Container::Box)
+                .style(container::rounded_box)
                 .padding(10)
                 .width(Length::Fill),
             ]

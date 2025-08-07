@@ -1,9 +1,9 @@
+use arboard::Clipboard;
 use iced::{
-    widget::{button, column, container, row, text, text_input, Column},
     Element, Length,
+    widget::{button, column, container, row, text, text_input, Column},
 };
 use ulid::Ulid;
-use arboard::Clipboard;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -48,8 +48,11 @@ impl UlidTool {
         let info_section = column![
             text("ULID Generator").size(24),
             text("Generates Universally Unique Lexicographically Sortable Identifiers").size(14),
-            text("ULIDs are timestamp-sortable and URL-safe").size(12)
-                .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6))),
+            text("ULIDs are timestamp-sortable and URL-safe")
+                .size(12)
+                .style(|_theme| iced::widget::text::Style {
+                    color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                }),
         ]
         .spacing(5);
 
@@ -72,17 +75,16 @@ impl UlidTool {
                         .padding([5, 10]),
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
-                container(
-                    text_input("", &self.generated_ulid)
-                        .size(14)
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
+                .align_y(iced::Alignment::Center),
+                container(text_input("", &self.generated_ulid).size(14))
+                    .style(container::rounded_box)
+                    .padding(10)
+                    .width(Length::Fill),
                 text(format!("Total generated: {}", self.count))
                     .size(12)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6))),
+                    .style(|_theme| iced::widget::text::Style {
+                        color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                    }),
             ]
             .spacing(5)
         } else {
@@ -91,9 +93,11 @@ impl UlidTool {
                 container(
                     text("Click 'Generate ULID' to create a new ULID")
                         .size(14)
-                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6)))
+                        .style(|_theme| iced::widget::text::Style {
+                            color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                        })
                 )
-                .style(iced::theme::Container::Box)
+                .style(container::rounded_box)
                 .padding(10)
                 .width(Length::Fill),
             ]

@@ -1,8 +1,8 @@
-use iced::{
-    widget::{button, column, container, row, text, text_input, Column},
-    Element, Length,
-};
 use arboard::Clipboard;
+use iced::{
+    Element, Length,
+    widget::{button, column, container, row, text, text_input, Column},
+};
 
 const SECOND_IN_MINUTE: u64 = 60;
 const MINUTE_IN_HOUR: u64 = 60;
@@ -63,19 +63,17 @@ impl SystemDesignTool {
                 self.data_size = value;
                 self.error = None;
             }
-            Message::Calculate => {
-                match self.calculate_back_of_envelope() {
-                    Ok((read_per_second, write_per_second, storage_used_per_year)) => {
-                        self.read_per_second = read_per_second;
-                        self.write_per_second = write_per_second;
-                        self.storage_used_per_year = storage_used_per_year as u64;
-                        self.error = None;
-                    }
-                    Err(error) => {
-                        self.error = Some(error);
-                    }
+            Message::Calculate => match self.calculate_back_of_envelope() {
+                Ok((read_per_second, write_per_second, storage_used_per_year)) => {
+                    self.read_per_second = read_per_second;
+                    self.write_per_second = write_per_second;
+                    self.storage_used_per_year = storage_used_per_year as u64;
+                    self.error = None;
                 }
-            }
+                Err(error) => {
+                    self.error = Some(error);
+                }
+            },
             Message::Clear => {
                 self.daily_active_user.clear();
                 self.read_write_ratio.clear();
@@ -97,10 +95,14 @@ impl SystemDesignTool {
     }
 
     fn calculate_back_of_envelope(&self) -> Result<(f64, f64, f64), String> {
-        let dau = self.daily_active_user.parse::<u64>()
+        let dau = self
+            .daily_active_user
+            .parse::<u64>()
             .map_err(|_| "Invalid Daily Active User number".to_string())?;
-        
-        let size = self.data_size.parse::<f64>()
+
+        let size = self
+            .data_size
+            .parse::<f64>()
             .map_err(|_| "Invalid data size".to_string())?;
 
         let ratio: Vec<&str> = self.read_write_ratio.split(':').collect();
@@ -108,9 +110,11 @@ impl SystemDesignTool {
             return Err("Invalid ratio format. Use format like '1:1' or '10:1'".to_string());
         }
 
-        let read_ratio = ratio[0].parse::<f64>()
+        let read_ratio = ratio[0]
+            .parse::<f64>()
             .map_err(|_| "Invalid read ratio".to_string())?;
-        let write_ratio = ratio[1].parse::<f64>()
+        let write_ratio = ratio[1]
+            .parse::<f64>()
             .map_err(|_| "Invalid write ratio".to_string())?;
 
         let read_per_second = (dau as f64 * read_ratio) / SECOND_IN_DAY as f64;
@@ -159,7 +163,8 @@ impl SystemDesignTool {
             text("Back of the envelope calculations").size(24),
             text("Assumptions:").size(16),
             text("• Assume DAU (Daily Active User)").size(12),
-            text("• Adjust read:write ratio - one of them need to be 1 for based calculation").size(12),
+            text("• Adjust read:write ratio - one of them need to be 1 for based calculation")
+                .size(12),
             text("• Adjust number you want to calculate read/write per seconds").size(12),
             text("• Assume data size of interest payload").size(12),
         ]
@@ -209,7 +214,7 @@ impl SystemDesignTool {
                         .padding([5, 10]),
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center),
                 text("Read per second").size(14),
                 text(format!("{:.6} rps", self.read_per_second)).size(14),
                 text("Write per second").size(14),
@@ -221,13 +226,13 @@ impl SystemDesignTool {
                 text(format!("{} GB", gb)).size(12),
                 text(format!("{} TB", tb)).size(12),
                 text(format!("{} PB", pb)).size(12),
-                text("The rest, Sum/Multiply them by yourself, you already got foundation value").size(14),
+                text("The rest, Sum/Multiply them by yourself, you already got foundation value")
+                    .size(14),
             ]
             .spacing(10)
             .width(Length::FillPortion(1))
         } else {
-            column![]
-                .width(Length::FillPortion(1))
+            column![].width(Length::FillPortion(1))
         };
 
         let mut content = Column::new()
@@ -236,11 +241,11 @@ impl SystemDesignTool {
             .push(row![left_column, right_column].spacing(20));
 
         if let Some(error) = &self.error {
-            content = content.push(
-                text(error)
-                    .size(14)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.8, 0.2, 0.2)))
-            );
+            content = content.push(text(error).size(14).style(
+|_theme| iced::widget::text::Style {
+                    color: Some(iced::Color::from_rgb(0.8, 0.2, 0.2))
+                }
+            ));
         }
 
         container(content)

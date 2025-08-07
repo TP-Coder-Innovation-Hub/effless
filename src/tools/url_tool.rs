@@ -1,8 +1,8 @@
-use iced::{
-    widget::{button, column, container, row, text, text_input, scrollable, Column},
-    Element, Length,
-};
 use arboard::Clipboard;
+use iced::{
+    Element, Length,
+    widget::{button, column, container, row, scrollable, text, text_input, Column},
+};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -38,7 +38,8 @@ impl UrlTool {
             Message::Decode => {
                 match url::form_urlencoded::parse(self.input.as_bytes()).collect::<Vec<_>>() {
                     decoded if !decoded.is_empty() => {
-                        self.output = decoded.iter()
+                        self.output = decoded
+                            .iter()
                             .map(|(k, v)| format!("{}={}", k, v))
                             .collect::<Vec<_>>()
                             .join("&");
@@ -105,15 +106,11 @@ impl UrlTool {
                         .padding([5, 10]),
                 ]
                 .spacing(10)
-                .align_items(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center),
                 container(
-                    scrollable(
-                        text_input("", &self.output)
-                            .size(14)
-                    )
-                    .height(Length::Fixed(100.0))
+                    scrollable(text_input("", &self.output).size(14)).height(Length::Fixed(100.0))
                 )
-                .style(iced::theme::Container::Box)
+                .style(container::rounded_box)
                 .padding(10)
                 .width(Length::Fill),
             ]
@@ -121,12 +118,12 @@ impl UrlTool {
         } else {
             column![
                 text("Output").size(16),
-                container(
-                    text("Result will appear here...")
-                        .size(14)
-                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6)))
-                )
-                .style(iced::theme::Container::Box)
+                container(text("Result will appear here...").size(14).style(
+|_theme| iced::widget::text::Style {
+                        color: Some(iced::Color::from_rgb(0.6, 0.6, 0.6))
+                    }
+                ))
+                .style(container::rounded_box)
                 .padding(10)
                 .width(Length::Fill)
                 .height(Length::Fixed(100.0)),
@@ -142,11 +139,11 @@ impl UrlTool {
             .push(output_section);
 
         if let Some(error) = &self.error {
-            content = content.push(
-                text(error)
-                    .size(14)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.8, 0.2, 0.2)))
-            );
+            content = content.push(text(error).size(14).style(
+|_theme| iced::widget::text::Style {
+                    color: Some(iced::Color::from_rgb(0.8, 0.2, 0.2))
+                }
+            ));
         }
 
         container(content)
