@@ -1,171 +1,191 @@
-use iced::{
-    widget::{button, column, container, row, text, text_input, Column},
-    Element, Length,
-};
+#![allow(non_snake_case)]
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    Lat1Changed(String),
-    Lon1Changed(String),
-    Lat2Changed(String),
-    Lon2Changed(String),
-    Calculate,
-    Clear,
-}
+use dioxus::prelude::*;
 
-#[derive(Default)]
-pub struct DistanceTool {
-    lat1: String,
-    lon1: String,
-    lat2: String,
-    lon2: String,
-    result: String,
-    error: Option<String>,
-}
+pub struct DistanceTool;
 
 impl DistanceTool {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 
-    pub fn update(&mut self, message: Message) {
-        match message {
-            Message::Lat1Changed(value) => {
-                self.lat1 = value;
-                self.error = None;
-            }
-            Message::Lon1Changed(value) => {
-                self.lon1 = value;
-                self.error = None;
-            }
-            Message::Lat2Changed(value) => {
-                self.lat2 = value;
-                self.error = None;
-            }
-            Message::Lon2Changed(value) => {
-                self.lon2 = value;
-                self.error = None;
-            }
-            Message::Calculate => {
-                match self.calculate_distance() {
+    pub fn view(&self) -> Element {
+        rsx! { DistanceToolView {} }
+    }
+}
+
+#[component]
+pub fn DistanceToolView() -> Element {
+    let mut lat1 = use_signal(String::new);
+    let mut lon1 = use_signal(String::new);
+    let mut lat2 = use_signal(String::new);
+    let mut lon2 = use_signal(String::new);
+    let mut result = use_signal(String::new);
+    let mut error = use_signal(|| None::<String>);
+
+    let calculate = move |_| {
+        use crate::logic::distance_logic::DistanceLogic;
+        
+        let lat1_val = lat1.read().parse::<f64>();
+        let lon1_val = lon1.read().parse::<f64>();
+        let lat2_val = lat2.read().parse::<f64>();
+        let lon2_val = lon2.read().parse::<f64>();
+        
+        match (lat1_val, lon1_val, lat2_val, lon2_val) {
+            (Ok(lat1), Ok(lon1), Ok(lat2), Ok(lon2)) => {
+                match DistanceLogic::calculate_with_validation(lat1, lon1, lat2, lon2) {
                     Ok(distance) => {
-                        self.result = format!("{:.2} km ({:.2} miles)", distance, distance * 0.621371);
-                        self.error = None;
+                        result.set(format!("{:.2} km ({:.2} miles)", distance.km, distance.miles));
+                        error.set(None);
                     }
-                    Err(e) => {
-                        self.error = Some(e);
-                        self.result.clear();
+                    Err(err) => {
+                        error.set(Some(format!("{:?}", err)));
+                        result.set(String::new());
                     }
                 }
             }
-            Message::Clear => {
-                self.lat1.clear();
-                self.lon1.clear();
-                self.lat2.clear();
-                self.lon2.clear();
-                self.result.clear();
-                self.error = None;
+            _ => {
+                error.set(Some("Please enter valid numeric coordinates".to_string()));
+                result.set(String::new());
             }
         }
-    }
+    };
 
-    fn calculate_distance(&self) -> Result<f64, String> {
-        let lat1: f64 = self.lat1.parse().map_err(|_| "Invalid latitude 1")?;
-        let lon1: f64 = self.lon1.parse().map_err(|_| "Invalid longitude 1")?;
-        let lat2: f64 = self.lat2.parse().map_err(|_| "Invalid latitude 2")?;
-        let lon2: f64 = self.lon2.parse().map_err(|_| "Invalid longitude 2")?;
+    let clear = move |_| {
+        lat1.set(String::new());
+        lon1.set(String::new());
+        lat2.set(String::new());
+        lon2.set(String::new());
+        result.set(String::new());
+        error.set(None);
+    };
 
-        // Haversine formula
-        let r = 6371.0; // Earth's radius in km
-        let dlat = (lat2 - lat1).to_radians();
-        let dlon = (lon2 - lon1).to_radians();
-        let a = (dlat / 2.0).sin().powi(2) 
-            + lat1.to_radians().cos() * lat2.to_radians().cos() * (dlon / 2.0).sin().powi(2);
-        let c = 2.0 * a.sqrt().asin();
-        
-        Ok(r * c)
-    }
-
-    pub fn view(&self) -> Element<Message> {
-        let point1_section = column![
-            text("Point 1").size(16),
-            row![
-                text_input("Latitude", &self.lat1)
-                    .on_input(Message::Lat1Changed)
-                    .size(14)
-                    .padding(10),
-                text_input("Longitude", &self.lon1)
-                    .on_input(Message::Lon1Changed)
-                    .size(14)
-                    .padding(10),
-            ]
-            .spacing(10),
-        ]
-        .spacing(5);
-
-        let point2_section = column![
-            text("Point 2").size(16),
-            row![
-                text_input("Latitude", &self.lat2)
-                    .on_input(Message::Lat2Changed)
-                    .size(14)
-                    .padding(10),
-                text_input("Longitude", &self.lon2)
-                    .on_input(Message::Lon2Changed)
-                    .size(14)
-                    .padding(10),
-            ]
-            .spacing(10),
-        ]
-        .spacing(5);
-
-        let buttons = row![
-            button(text("Calculate").size(14))
-                .on_press(Message::Calculate)
-                .padding(10),
-            button(text("Clear").size(14))
-                .on_press(Message::Clear)
-                .padding(10),
-        ]
-        .spacing(10);
-
-        let result_section = if !self.result.is_empty() {
-            column![
-                text("Distance").size(16),
-                container(
-                    text_input("", &self.result)
-                        .size(14)
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
-            ]
-            .spacing(5)
-        } else {
-            column![]
-        };
-
-        let mut content = Column::new()
-            .spacing(20)
-            .push(text("Haversine Distance Calculator").size(24))
-            .push(text("Calculate the great-circle distance between two points on Earth").size(14))
-            .push(point1_section)
-            .push(point2_section)
-            .push(buttons)
-            .push(result_section);
-
-        if let Some(error) = &self.error {
-            content = content.push(
-                text(error)
-                    .size(14)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.8, 0.2, 0.2)))
-            );
+    rsx! {
+        div {
+            style: "padding: 20px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;",
+            
+            h1 {
+                style: "font-size: 24px; margin-bottom: 5px; color: #2c3e50; margin-top: 0; flex-shrink: 0;",
+                "Haversine Distance Calculator"
+            }
+            
+            p {
+                style: "font-size: 14px; margin-bottom: 20px; color: #2c3e50; flex-shrink: 0;",
+                "Calculate the great-circle distance between two points on Earth"
+            }
+            
+            // Point 1 section
+            div {
+                style: "margin-bottom: 20px; flex-shrink: 0;",
+                
+                h3 {
+                    style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50; margin-top: 0;",
+                    "Point 1"
+                }
+                
+                div {
+                    style: "display: flex; gap: 10px;",
+                    
+                    input {
+                        style: "flex: 1; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; box-sizing: border-box;",
+                        placeholder: "Latitude",
+                        value: "{lat1.read()}",
+                        oninput: move |event| {
+                            lat1.set(event.value());
+                            error.set(None);
+                        }
+                    }
+                    
+                    input {
+                        style: "flex: 1; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; box-sizing: border-box;",
+                        placeholder: "Longitude",
+                        value: "{lon1.read()}",
+                        oninput: move |event| {
+                            lon1.set(event.value());
+                            error.set(None);
+                        }
+                    }
+                }
+            }
+            
+            // Point 2 section
+            div {
+                style: "margin-bottom: 20px; flex-shrink: 0;",
+                
+                h3 {
+                    style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50; margin-top: 0;",
+                    "Point 2"
+                }
+                
+                div {
+                    style: "display: flex; gap: 10px;",
+                    
+                    input {
+                        style: "flex: 1; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; box-sizing: border-box;",
+                        placeholder: "Latitude",
+                        value: "{lat2.read()}",
+                        oninput: move |event| {
+                            lat2.set(event.value());
+                            error.set(None);
+                        }
+                    }
+                    
+                    input {
+                        style: "flex: 1; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; box-sizing: border-box;",
+                        placeholder: "Longitude",
+                        value: "{lon2.read()}",
+                        oninput: move |event| {
+                            lon2.set(event.value());
+                            error.set(None);
+                        }
+                    }
+                }
+            }
+            
+            // Buttons
+            div {
+                style: "margin-bottom: 20px; display: flex; gap: 10px; flex-shrink: 0;",
+                
+                button {
+                    style: "padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: calculate,
+                    "Calculate"
+                }
+                
+                button {
+                    style: "padding: 10px 20px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: clear,
+                    "Clear"
+                }
+            }
+            
+            // Result section
+            div {
+                style: "flex: 1; display: flex; flex-direction: column; overflow: hidden;",
+                
+                if !result.read().is_empty() {
+                    div {
+                        h3 {
+                            style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50; margin-top: 0;",
+                            "Distance"
+                        }
+                        
+                        input {
+                            style: "width: calc(100% - 20px); padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; background-color: #f8f9fa; box-sizing: border-box;",
+                            readonly: true,
+                            value: "{result.read()}"
+                        }
+                    }
+                }
+                
+                // Error message
+                if let Some(err) = error.read().as_ref() {
+                    div {
+                        style: "margin-top: 10px; padding: 10px; background-color: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828; font-size: 14px; flex-shrink: 0;",
+                        "{err}"
+                    }
+                }
+            }
         }
-
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(20)
-            .into()
     }
 }
