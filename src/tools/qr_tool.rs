@@ -1,82 +1,105 @@
-use iced::{
-    widget::{button, column, container, text, text_input, Column},
-    Element, Length,
-};
+#![allow(non_snake_case)]
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    InputChanged(String),
-    Generate,
-    Clear,
-}
+use dioxus::prelude::*;
 
-#[derive(Default)]
-pub struct QrTool {
-    input: String,
-    status: String,
-}
+pub struct QrTool;
 
 impl QrTool {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 
-    pub fn update(&mut self, message: Message) {
-        match message {
-            Message::InputChanged(value) => {
-                self.input = value;
-                self.status.clear();
+    pub fn view(&self) -> Element {
+        rsx! { QrToolView {} }
+    }
+}
+
+#[component]
+pub fn QrToolView() -> Element {
+    let mut input = use_signal(String::new);
+    let mut status = use_signal(String::new);
+
+    let generate = move |_| {
+        if !input.read().is_empty() {
+            status.set(format!("QR Code would be generated for: '{}'", input.read()));
+        } else {
+            status.set("Please enter text to generate QR code".to_string());
+        }
+    };
+
+    let clear = move |_| {
+        input.set(String::new());
+        status.set(String::new());
+    };
+
+    rsx! {
+        div {
+            style: "padding: 20px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;",
+            
+            h1 {
+                style: "font-size: 24px; margin-bottom: 5px; color: #2c3e50; margin-top: 0; flex-shrink: 0;",
+                "QR Code Generator"
             }
-            Message::Generate => {
-                if !self.input.is_empty() {
-                    self.status = format!("QR Code would be generated for: '{}'", self.input);
-                } else {
-                    self.status = "Please enter text to generate QR code".to_string();
+            
+            p {
+                style: "font-size: 12px; margin-bottom: 20px; color: #95a5a6; flex-shrink: 0;",
+                "Note: QR code generation UI is a placeholder"
+            }
+            
+            // Input section
+            div {
+                style: "margin-bottom: 20px; flex-shrink: 0;",
+                
+                h3 {
+                    style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50; margin-top: 0;",
+                    "Text to encode"
+                }
+                
+                input {
+                    style: "width: calc(100% - 20px); padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; box-sizing: border-box;",
+                    placeholder: "Enter text for QR code...",
+                    value: "{input.read()}",
+                    oninput: move |event| {
+                        input.set(event.value());
+                        status.set(String::new());
+                    }
                 }
             }
-            Message::Clear => {
-                self.input.clear();
-                self.status.clear();
+            
+            // Buttons
+            div {
+                style: "margin-bottom: 20px; display: flex; gap: 10px; flex-shrink: 0;",
+                
+                button {
+                    style: "padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: generate,
+                    "Generate QR Code"
+                }
+                
+                button {
+                    style: "padding: 10px 20px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: clear,
+                    "Clear"
+                }
+            }
+            
+            // Status section
+            div {
+                style: "flex: 1; display: flex; flex-direction: column; overflow: hidden;",
+                
+                if !status.read().is_empty() {
+                    div {
+                        h3 {
+                            style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50; margin-top: 0;",
+                            "Status"
+                        }
+                        p {
+                            style: "font-size: 14px; color: #2c3e50;",
+                            "{status.read()}"
+                        }
+                    }
+                }
             }
         }
-    }
-
-    pub fn view(&self) -> Element<Message> {
-        let input_section = column![
-            text("Text to encode").size(16),
-            text_input("Enter text for QR code...", &self.input)
-                .on_input(Message::InputChanged)
-                .size(14)
-                .padding(10),
-        ]
-        .spacing(5);
-
-        let button_section = button(text("Generate QR Code").size(14))
-            .on_press(Message::Generate)
-            .padding(10);
-
-        let output_section = if !self.status.is_empty() {
-            column![
-                text("Status").size(16),
-                text(&self.status).size(14),
-            ]
-            .spacing(5)
-        } else {
-            column![]
-        };
-
-        let content = Column::new()
-            .spacing(20)
-            .push(text("QR Code Generator").size(24))
-            .push(text("Note: QR code generation UI is a placeholder").size(12))
-            .push(input_section)
-            .push(button_section)
-            .push(output_section);
-
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(20)
-            .into()
     }
 }
