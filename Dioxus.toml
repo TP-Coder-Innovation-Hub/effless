@@ -1,0 +1,7 @@
+[application]
+name = "Effless - Devtools to use locally"
+
+[bundle]
+identifier = "dev.tpcoder"
+publisher = "TP Coder"
+icon = ["assets/icon.jpg"]
