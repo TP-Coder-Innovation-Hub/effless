@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 dioxus = { version = "0.6", features = ["desktop"] }
-dioxus-desktop = "0.6"
 base64 = "0.22"
 uuid = { version = "1.6", features = ["v4"] }
 ulid = "1.1"
