@@ -1,113 +1,121 @@
-use iced::{
-    widget::{button, column, container, row, text, text_input, scrollable, Column},
-    Element, Length,
-};
+#![allow(non_snake_case)]
+
+use dioxus::prelude::*;
 use uuid::Uuid;
 use arboard::Clipboard;
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    Generate,
-    Clear,
-    CopyToClipboard,
-}
-
 #[derive(Default)]
-pub struct UuidTool {
-    generated_uuid: String,
-    count: u32,
-}
+pub struct UuidTool;
 
 impl UuidTool {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 
-    pub fn update(&mut self, message: Message) {
-        match message {
-            Message::Generate => {
-                let uuid = Uuid::new_v4();
-                self.generated_uuid = uuid.to_string();
-                self.count += 1;
+    pub fn view(&self) -> Element {
+        rsx! { UuidToolView {} }
+    }
+}
+
+#[component]
+pub fn UuidToolView() -> Element {
+    let mut generated_uuid = use_signal(String::new);
+    let mut count = use_signal(|| 0u32);
+
+    let generate = move |_| {
+        let uuid = Uuid::new_v4();
+        generated_uuid.set(uuid.to_string());
+        count.set(count() + 1);
+    };
+
+    let clear = move |_| {
+        generated_uuid.set(String::new());
+        count.set(0);
+    };
+
+    let copy_to_clipboard = move |_| {
+        if !generated_uuid.read().is_empty() {
+            if let Ok(mut clipboard) = Clipboard::new() {
+                let _ = clipboard.set_text(&*generated_uuid.read());
             }
-            Message::Clear => {
-                self.generated_uuid.clear();
-                self.count = 0;
+        }
+    };
+
+    rsx! {
+        div {
+            style: "padding: 20px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;",
+            
+            h1 {
+                style: "font-size: 24px; margin-bottom: 5px; color: #2c3e50; margin-top: 0; flex-shrink: 0;",
+                "UUID v4 Generator"
             }
-            Message::CopyToClipboard => {
-                if !self.generated_uuid.is_empty() {
-                    if let Ok(mut clipboard) = Clipboard::new() {
-                        let _ = clipboard.set_text(&self.generated_uuid);
+            
+            p {
+                style: "font-size: 14px; margin-bottom: 20px; color: #2c3e50; flex-shrink: 0;",
+                "Generates random UUIDs using version 4 (random)"
+            }
+            
+            // Buttons
+            div {
+                style: "margin-bottom: 20px; display: flex; gap: 10px; flex-shrink: 0;",
+                
+                button {
+                    style: "padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: generate,
+                    "Generate UUID"
+                }
+                
+                button {
+                    style: "padding: 10px 20px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: clear,
+                    "Clear"
+                }
+            }
+            
+            // Output section
+            div {
+                style: "flex: 1; display: flex; flex-direction: column; overflow: hidden;",
+                
+                div {
+                    style: "display: flex; align-items: center; gap: 10px; margin-bottom: 5px;",
+                    
+                    h3 {
+                        style: "font-size: 16px; color: #2c3e50; margin: 0;",
+                        "Generated UUID"
+                    }
+                    
+                    if !generated_uuid.read().is_empty() {
+                        button {
+                            style: "padding: 5px 10px; background-color: #34495e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;",
+                            onclick: copy_to_clipboard,
+                            "📋 Copy"
+                        }
+                    }
+                }
+                
+                if generated_uuid.read().is_empty() {
+                    div {
+                        style: "padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;",
+                        span {
+                            style: "color: #95a5a6; font-size: 14px;",
+                            "Click 'Generate UUID' to create a new UUID"
+                        }
+                    }
+                } else {
+                    input {
+                        style: "width: calc(100% - 20px); padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; font-family: monospace; background-color: #f8f9fa; box-sizing: border-box;",
+                        readonly: true,
+                        value: "{generated_uuid.read()}"
+                    }
+                }
+                
+                if count() > 0 {
+                    p {
+                        style: "margin-top: 5px; font-size: 12px; color: #95a5a6; margin-bottom: 0;",
+                        "Total generated: {count()}"
                     }
                 }
             }
         }
-    }
-
-    pub fn view(&self) -> Element<Message> {
-        let info_section = column![
-            text("UUID v4 Generator").size(24),
-            text("Generates random UUIDs using version 4 (random)").size(14),
-        ]
-        .spacing(5);
-
-        let buttons = row![
-            button(text("Generate UUID").size(14))
-                .on_press(Message::Generate)
-                .padding(10),
-            button(text("Clear").size(14))
-                .on_press(Message::Clear)
-                .padding(10),
-        ]
-        .spacing(10);
-
-        let output_section = if !self.generated_uuid.is_empty() {
-            column![
-                row![
-                    text("Generated UUID").size(16),
-                    button(text("📋 Copy").size(12))
-                        .on_press(Message::CopyToClipboard)
-                        .padding([5, 10]),
-                ]
-                .spacing(10)
-                .align_items(iced::Alignment::Center),
-                container(
-                    text_input("", &self.generated_uuid)
-                        .size(14)
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
-                text(format!("Total generated: {}", self.count))
-                    .size(12)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6))),
-            ]
-            .spacing(5)
-        } else {
-            column![
-                text("Generated UUID").size(16),
-                container(
-                    text("Click 'Generate UUID' to create a new UUID")
-                        .size(14)
-                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6)))
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
-            ]
-            .spacing(5)
-        };
-
-        let content = Column::new()
-            .spacing(20)
-            .push(info_section)
-            .push(buttons)
-            .push(output_section);
-
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(20)
-            .into()
     }
 }
