@@ -1,25 +1,21 @@
 # Effless
 
-A modern, secure desktop application providing essential developer tools in a single interface. Built with Rust and Iced for performance, security, and cross-platform compatibility.
+A modern, secure desktop application providing essential developer tools in a single interface. Built with Rust and Dioxus for performance, security, and cross-platform compatibility.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=flat&logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Iced](https://img.shields.io/badge/GUI-Iced-blue)](https://iced.rs/)
+[![Dioxus](https://img.shields.io/badge/GUI-Dioxus-blue)](https://dioxuslabs.com/)
 
 ## 🚀 Features
 
-### Converters
-- **JSON Formatter**: Pretty-print and minify JSON with syntax validation
-
 ### Encoders/Decoders  
 - **Base64**: Encode and decode Base64 strings with error handling
-- **URL**: URL encode/decode with proper percent-encoding support
 
 ### Generators
-- **Hash/Checksum**: Generate SHA-256, SHA-512, and MD5 hashes
 - **UUID**: Generate UUID v4 identifiers
 - **ULID**: Generate ULIDs for distributed systems
 - **QR Code**: Generate QR codes with customizable output
+- **Icon Generator**: Create custom icons with text overlays and color customization
 
 ### Calculators
 - **Haversine Distance**: Calculate distances between geographical coordinates
@@ -99,21 +95,27 @@ The bundled applications will be created in the `dist/` directory. For cross-pla
 ## 🏗️ Architecture
 
 ### Core Components
-- **Main Application**: Iced-based GUI with sidebar navigation
+- **Main Application**: Dioxus desktop application with reactive state management
 - **Tool System**: Modular architecture using Rust enums for type safety
-- **Individual Tools**: Self-contained modules with consistent interfaces
+- **Individual Tools**: Self-contained modules with Dioxus component patterns
+- **Business Logic**: Separated testable business logic modules
 
 ### Tool Pattern
-Each tool implements:
+Each tool follows the Dioxus component pattern:
 ```rust
 pub struct ToolName {
-    // Tool state
+    // Tool configuration
 }
 
 impl ToolName {
     pub fn new() -> Self { /* ... */ }
-    pub fn update(&mut self, message: Message) { /* ... */ }
-    pub fn view(&self) -> Element<Message> { /* ... */ }
+    pub fn view(&self) -> Element { /* delegates to component */ }
+}
+
+#[component]
+pub fn ToolNameView() -> Element {
+    let state = use_signal(|| initial_state);
+    // Component implementation
 }
 ```
 
@@ -174,7 +176,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built with [Iced](https://iced.rs/) - A cross-platform GUI library for Rust
+- Built with [Dioxus](https://dioxuslabs.com/) - A modern reactive GUI framework for Rust
 - Inspired by the need for secure, offline developer tools
 - Thanks to the Rust community for excellent crates and documentation
 

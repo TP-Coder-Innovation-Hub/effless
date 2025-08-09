@@ -30,11 +30,11 @@ fn App() -> Element {
             
             // Sidebar
             div {
-                style: "width: 250px; background-color: #2c3e50; padding: 20px; overflow-y: auto; flex-shrink: 0; box-sizing: border-box;",
+                style: "width: 250px; background-color: #222831; padding: 20px; overflow-y: auto; flex-shrink: 0; box-sizing: border-box;",
                 
                 // Search input
                 input {
-                    style: "width: calc(100% - 16px); padding: 8px; margin-bottom: 20px; border: none; border-radius: 4px; background-color: #34495e; color: #ecf0f1; font-size: 14px;",
+                    style: "width: calc(100% - 16px); padding: 8px; margin-bottom: 20px; border: none; border-radius: 4px; background-color: #31363F; color: #EEEEEE; font-size: 14px;",
                     placeholder: "🔍 Search tools...",
                     value: "{search_query.read()}",
                     oninput: move |event| {
@@ -48,7 +48,7 @@ fn App() -> Element {
             
             // Main tool area
             div {
-                style: "flex: 1; background-color: #ecf0f1; display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; overflow: hidden;",
+                style: "flex: 1; background-color: #EEEEEE; display: flex; flex-direction: column; min-height: 0; box-sizing: border-box; overflow: hidden;",
                 {current_tool.read().view()}
             }
         }
@@ -110,7 +110,7 @@ fn render_sidebar(
                         
                         // Category header
                         div {
-                            style: "color: #bdc3c7; font-size: 16px; margin-bottom: 8px; font-weight: 500;",
+                            style: "color: #76ABAE; font-size: 16px; margin-bottom: 8px; font-weight: 500;",
                             "{category_name}"
                         }
                         
@@ -118,9 +118,9 @@ fn render_sidebar(
                         {tools.iter().map(|(tool_type, tool_name)| {
                             let is_selected = selected_tool.read().clone() == *tool_type;
                             let button_style = if is_selected {
-                                "width: 100%; padding: 8px 12px; margin-bottom: 4px; border: none; border-radius: 4px; background-color: #3498db; color: white; cursor: pointer; text-align: left; font-size: 14px;"
+                                "width: 100%; padding: 8px 12px; margin-bottom: 4px; border: none; border-radius: 4px; background-color: #76ABAE; color: #222831; cursor: pointer; text-align: left; font-size: 14px; font-weight: 500;"
                             } else {
-                                "width: 100%; padding: 8px 12px; margin-bottom: 4px; border: none; border-radius: 4px; background-color: #34495e; color: #ecf0f1; cursor: pointer; text-align: left; font-size: 14px; transition: background-color 0.2s;"
+                                "width: 100%; padding: 8px 12px; margin-bottom: 4px; border: none; border-radius: 4px; background-color: #31363F; color: #EEEEEE; cursor: pointer; text-align: left; font-size: 14px; transition: background-color 0.2s;"
                             };
                             
                             let tool_key = format!("tool_{}_{}", category_name, tool_name);

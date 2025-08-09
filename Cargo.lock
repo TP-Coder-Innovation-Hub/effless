@@ -1506,7 +1506,6 @@ dependencies = [
  "base64",
  "chrono",
  "dioxus",
- "dioxus-desktop",
  "ico",
  "image",
  "md5",
