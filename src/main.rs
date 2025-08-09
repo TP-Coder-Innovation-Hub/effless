@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use dioxus::prelude::*;
+use dioxus::LaunchBuilder;
 use std::collections::HashMap;
 
 mod tools;
@@ -9,7 +10,13 @@ mod logic;
 use tools::{Tool, ToolType};
 
 fn main() {
-    dioxus::launch(App);
+    LaunchBuilder::desktop()
+        .with_cfg(dioxus::desktop::Config::new().with_window(
+            dioxus::desktop::WindowBuilder::new()
+                .with_title("Effless")
+                .with_resizable(true)
+        ))
+        .launch(App);
 }
 
 fn App() -> Element {

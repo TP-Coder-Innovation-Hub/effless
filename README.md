@@ -61,6 +61,24 @@ cargo build --release
 cargo run  # Build and run in development mode
 ```
 
+### Package for Distribution
+
+**Note**: Bundling is platform-specific. You must build on the target platform (macOS for macOS bundles, Windows for Windows bundles).
+
+#### macOS
+```bash
+# Bundle for macOS (creates .app and .dmg)
+dx bundle --platform desktop --package-types "macos" --package-types "dmg"
+```
+
+#### Windows
+```bash
+# Bundle for Windows (creates .exe and .msi)
+dx bundle --platform desktop --package-types "msi"
+```
+
+The bundled applications will be created in the `dist/` directory. For cross-platform builds, consider using CI/CD services like GitHub Actions.
+
 ## 🎯 Usage
 
 1. **Launch** the application
