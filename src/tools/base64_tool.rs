@@ -1,154 +1,157 @@
-use iced::{
-    widget::{button, column, container, row, text, text_input, scrollable, Column},
-    Element, Length,
-};
-use base64::{Engine as _, engine::general_purpose};
+#![allow(non_snake_case)]
+
+use dioxus::prelude::*;
 use arboard::Clipboard;
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    InputChanged(String),
-    Encode,
-    Decode,
-    Clear,
-    CopyToClipboard,
-}
-
-#[derive(Default)]
-pub struct Base64Tool {
-    input: String,
-    output: String,
-    error: Option<String>,
-}
+pub struct Base64Tool;
 
 impl Base64Tool {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 
-    pub fn update(&mut self, message: Message) {
-        match message {
-            Message::InputChanged(value) => {
-                self.input = value;
-                self.error = None;
+    pub fn view(&self) -> Element {
+        rsx! { Base64ToolView {} }
+    }
+}
+
+#[component]
+pub fn Base64ToolView() -> Element {
+    let mut input = use_signal(String::new);
+    let mut output = use_signal(String::new);
+    let mut error = use_signal(|| None::<String>);
+
+    let encode = move |_| {
+        use crate::logic::base64_logic::Base64Logic;
+        let encoded = Base64Logic::encode(&input.read());
+        output.set(encoded);
+        error.set(None);
+    };
+
+    let decode = move |_| {
+        use crate::logic::base64_logic::Base64Logic;
+        match Base64Logic::decode(&input.read()) {
+            Ok(decoded) => {
+                output.set(decoded);
+                error.set(None);
             }
-            Message::Encode => {
-                self.output = general_purpose::STANDARD.encode(&self.input);
-                self.error = None;
+            Err(err) => {
+                error.set(Some(format!("{:?}", err)));
             }
-            Message::Decode => {
-                match general_purpose::STANDARD.decode(&self.input) {
-                    Ok(decoded) => {
-                        match String::from_utf8(decoded) {
-                            Ok(text) => {
-                                self.output = text;
-                                self.error = None;
-                            }
-                            Err(_) => {
-                                self.error = Some("Invalid UTF-8 in decoded data".to_string());
-                            }
+        }
+    };
+
+    let clear = move |_| {
+        input.set(String::new());
+        output.set(String::new());
+        error.set(None);
+    };
+
+    let copy_to_clipboard = move |_| {
+        if !output.read().is_empty() {
+            if let Ok(mut clipboard) = Clipboard::new() {
+                let _ = clipboard.set_text(&*output.read());
+            }
+        }
+    };
+
+    rsx! {
+        div {
+            style: "padding: 20px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;",
+            
+            h1 {
+                style: "font-size: 24px; margin-bottom: 15px; color: #2c3e50; margin-top: 0; flex-shrink: 0;",
+                "Base64 Encoder/Decoder"
+            }
+            
+            // Input section
+            div {
+                style: "margin-bottom: 15px; flex-shrink: 0;",
+                
+                h3 {
+                    style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50; margin-top: 0;",
+                    "Input"
+                }
+                
+                textarea {
+                    style: "width: calc(100% - 20px); height: 60px; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; font-family: monospace; resize: none; box-sizing: border-box;",
+                    placeholder: "Enter text to encode/decode...",
+                    value: "{input.read()}",
+                    oninput: move |event| {
+                        input.set(event.value());
+                        error.set(None);
+                    }
+                }
+            }
+            
+            // Buttons
+            div {
+                style: "margin-bottom: 15px; display: flex; gap: 10px; flex-shrink: 0;",
+                
+                button {
+                    style: "padding: 8px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: encode,
+                    "Encode"
+                }
+                
+                button {
+                    style: "padding: 8px 16px; background-color: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: decode,
+                    "Decode"
+                }
+                
+                button {
+                    style: "padding: 8px 16px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                    onclick: clear,
+                    "Clear"
+                }
+            }
+            
+            // Output section
+            div {
+                style: "flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;",
+                
+                div {
+                    style: "display: flex; align-items: center; gap: 10px; margin-bottom: 5px;",
+                    
+                    h3 {
+                        style: "font-size: 16px; color: #2c3e50; margin: 0;",
+                        "Output"
+                    }
+                    
+                    if !output.read().is_empty() {
+                        button {
+                            style: "padding: 4px 8px; background-color: #34495e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;",
+                            onclick: copy_to_clipboard,
+                            "📋 Copy"
                         }
                     }
-                    Err(_) => {
-                        self.error = Some("Invalid Base64 input".to_string());
+                }
+                
+                if output.read().is_empty() {
+                    div {
+                        style: "flex: 1; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;",
+                        span {
+                            style: "color: #95a5a6; font-size: 14px;",
+                            "Result will appear here..."
+                        }
+                    }
+                } else {
+                    textarea {
+                        style: "flex: 1; width: calc(100% - 20px); padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px; font-family: monospace; background-color: #f8f9fa; resize: none; box-sizing: border-box; min-height: 0;",
+                        readonly: true,
+                        value: "{output.read()}"
                     }
                 }
             }
-            Message::Clear => {
-                self.input.clear();
-                self.output.clear();
-                self.error = None;
-            }
-            Message::CopyToClipboard => {
-                if !self.output.is_empty() {
-                    if let Ok(mut clipboard) = Clipboard::new() {
-                        let _ = clipboard.set_text(&self.output);
-                    }
+            
+            // Error message
+            if let Some(err) = error.read().as_ref() {
+                div {
+                    style: "margin-top: 10px; padding: 10px; background-color: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828; font-size: 14px; flex-shrink: 0;",
+                    "{err}"
                 }
             }
         }
-    }
-
-    pub fn view(&self) -> Element<Message> {
-        let input_section = column![
-            text("Input").size(16),
-            text_input("Enter text to encode/decode...", &self.input)
-                .on_input(Message::InputChanged)
-                .size(14)
-                .padding(10),
-        ]
-        .spacing(5);
-
-        let buttons = row![
-            button(text("Encode").size(14))
-                .on_press(Message::Encode)
-                .padding(10),
-            button(text("Decode").size(14))
-                .on_press(Message::Decode)
-                .padding(10),
-            button(text("Clear").size(14))
-                .on_press(Message::Clear)
-                .padding(10),
-        ]
-        .spacing(10);
-
-        let output_section = if !self.output.is_empty() {
-            column![
-                row![
-                    text("Output").size(16),
-                    button(text("📋 Copy").size(12))
-                        .on_press(Message::CopyToClipboard)
-                        .padding([5, 10]),
-                ]
-                .spacing(10)
-                .align_items(iced::Alignment::Center),
-                container(
-                    scrollable(
-                        text_input("", &self.output)
-                            .size(14)
-                    )
-                    .height(Length::Fixed(100.0))
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill),
-            ]
-            .spacing(5)
-        } else {
-            column![
-                text("Output").size(16),
-                container(
-                    text("Result will appear here...")
-                        .size(14)
-                        .style(iced::theme::Text::Color(iced::Color::from_rgb(0.6, 0.6, 0.6)))
-                )
-                .style(iced::theme::Container::Box)
-                .padding(10)
-                .width(Length::Fill)
-                .height(Length::Fixed(100.0)),
-            ]
-            .spacing(5)
-        };
-
-        let mut content = Column::new()
-            .spacing(20)
-            .push(text("Base64 Encoder/Decoder").size(24))
-            .push(input_section)
-            .push(buttons)
-            .push(output_section);
-
-        if let Some(error) = &self.error {
-            content = content.push(
-                text(error)
-                    .size(14)
-                    .style(iced::theme::Text::Color(iced::Color::from_rgb(0.8, 0.2, 0.2)))
-            );
-        }
-
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(20)
-            .into()
     }
 }
