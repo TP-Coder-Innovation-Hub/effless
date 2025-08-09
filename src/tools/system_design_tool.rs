@@ -1,8 +1,7 @@
+#![allow(non_snake_case)]
+
+use dioxus::prelude::*;
 use arboard::Clipboard;
-use iced::{
-    Element, Length,
-    widget::{button, column, container, row, text, text_input, Column},
-};
 
 const SECOND_IN_MINUTE: u64 = 60;
 const MINUTE_IN_HOUR: u64 = 60;
@@ -10,111 +9,28 @@ const HOUR_IN_DAY: u64 = 24;
 const SECOND_IN_DAY: u64 = SECOND_IN_MINUTE * MINUTE_IN_HOUR * HOUR_IN_DAY; // 86400
 const DAY_IN_YEAR: u64 = 365; // Assume 365 days in a year
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    DailyActiveUserChanged(String),
-    ReadWriteRatioChanged(String),
-    DataSizeChanged(String),
-    Calculate,
-    Clear,
-    CopyToClipboard,
-}
-
-pub struct SystemDesignTool {
-    daily_active_user: String,
-    read_write_ratio: String,
-    data_size: String,
-    read_per_second: f64,
-    write_per_second: f64,
-    storage_used_per_year: u64,
-    error: Option<String>,
-}
-
-impl Default for SystemDesignTool {
-    fn default() -> Self {
-        Self {
-            daily_active_user: String::new(),
-            read_write_ratio: String::new(),
-            data_size: String::new(),
-            read_per_second: 0.0,
-            write_per_second: 0.0,
-            storage_used_per_year: 0,
-            error: None,
-        }
-    }
-}
+pub struct SystemDesignTool;
 
 impl SystemDesignTool {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 
-    pub fn update(&mut self, message: Message) {
-        match message {
-            Message::DailyActiveUserChanged(value) => {
-                self.daily_active_user = value;
-                self.error = None;
-            }
-            Message::ReadWriteRatioChanged(value) => {
-                self.read_write_ratio = value;
-                self.error = None;
-            }
-            Message::DataSizeChanged(value) => {
-                self.data_size = value;
-                self.error = None;
-            }
-            Message::Calculate => match self.calculate_back_of_envelope() {
-                Ok((read_per_second, write_per_second, storage_used_per_year)) => {
-                    self.read_per_second = read_per_second;
-                    self.write_per_second = write_per_second;
-                    self.storage_used_per_year = storage_used_per_year as u64;
-                    self.error = None;
-                }
-                Err(error) => {
-                    self.error = Some(error);
-                }
-            },
-            Message::Clear => {
-                self.daily_active_user.clear();
-                self.read_write_ratio.clear();
-                self.data_size.clear();
-                self.read_per_second = 0.0;
-                self.write_per_second = 0.0;
-                self.storage_used_per_year = 0;
-                self.error = None;
-            }
-            Message::CopyToClipboard => {
-                let results = self.format_results();
-                if !results.is_empty() {
-                    if let Ok(mut clipboard) = Clipboard::new() {
-                        let _ = clipboard.set_text(&results);
-                    }
-                }
-            }
-        }
-    }
-
-    fn calculate_back_of_envelope(&self) -> Result<(f64, f64, f64), String> {
-        let dau = self
-            .daily_active_user
-            .parse::<u64>()
+    fn calculate_back_of_envelope(dau_str: &str, ratio_str: &str, size_str: &str) -> Result<(f64, f64, f64), String> {
+        let dau = dau_str.parse::<u64>()
             .map_err(|_| "Invalid Daily Active User number".to_string())?;
-
-        let size = self
-            .data_size
-            .parse::<f64>()
+        
+        let size = size_str.parse::<f64>()
             .map_err(|_| "Invalid data size".to_string())?;
 
-        let ratio: Vec<&str> = self.read_write_ratio.split(':').collect();
+        let ratio: Vec<&str> = ratio_str.split(':').collect();
         if ratio.len() != 2 {
             return Err("Invalid ratio format. Use format like '1:1' or '10:1'".to_string());
         }
 
-        let read_ratio = ratio[0]
-            .parse::<f64>()
+        let read_ratio = ratio[0].parse::<f64>()
             .map_err(|_| "Invalid read ratio".to_string())?;
-        let write_ratio = ratio[1]
-            .parse::<f64>()
+        let write_ratio = ratio[1].parse::<f64>()
             .map_err(|_| "Invalid write ratio".to_string())?;
 
         let read_per_second = (dau as f64 * read_ratio) / SECOND_IN_DAY as f64;
@@ -124,12 +40,12 @@ impl SystemDesignTool {
         Ok((read_per_second, write_per_second, storage_used_per_year))
     }
 
-    fn format_results(&self) -> String {
-        if self.read_per_second == 0.0 && self.write_per_second == 0.0 {
+    fn format_results(read_per_second: f64, write_per_second: f64, storage_used_per_year: u64) -> String {
+        if read_per_second == 0.0 && write_per_second == 0.0 {
             return String::new();
         }
 
-        let kb = self.storage_used_per_year / 1024;
+        let kb = storage_used_per_year / 1024;
         let mb = kb / 1024;
         let gb = mb / 1024;
         let tb = gb / 1024;
@@ -147,9 +63,9 @@ impl SystemDesignTool {
             {} TB\n\
             {} PB\n\n\
             The rest, Sum/Multiply them by yourself, you already got foundation value",
-            self.read_per_second,
-            self.write_per_second,
-            self.storage_used_per_year,
+            read_per_second,
+            write_per_second,
+            storage_used_per_year,
             kb,
             mb,
             gb,
@@ -158,100 +74,310 @@ impl SystemDesignTool {
         )
     }
 
-    pub fn view(&self) -> Element<Message> {
-        let description = column![
-            text("Back of the envelope calculations").size(24),
-            text("Assumptions:").size(16),
-            text("• Assume DAU (Daily Active User)").size(12),
-            text("• Adjust read:write ratio - one of them need to be 1 for based calculation")
-                .size(12),
-            text("• Adjust number you want to calculate read/write per seconds").size(12),
-            text("• Assume data size of interest payload").size(12),
-        ]
-        .spacing(5);
+    pub fn view(&self) -> Element {
+        rsx! { SystemDesignToolView {} }
+    }
+}
 
-        let left_column = column![
-            text("Daily Active User").size(16),
-            text_input("Daily Active User", &self.daily_active_user)
-                .on_input(Message::DailyActiveUserChanged)
-                .size(14)
-                .padding(10),
-            text("Read:Write Ratio").size(16),
-            text_input("Read:Write Ratio (e.g., 1:1, 10:1)", &self.read_write_ratio)
-                .on_input(Message::ReadWriteRatioChanged)
-                .size(14)
-                .padding(10),
-            text("Data size of interest payload (Byte)").size(16),
-            text_input("Data size of interest payload in byte", &self.data_size)
-                .on_input(Message::DataSizeChanged)
-                .size(14)
-                .padding(10),
-            row![
-                button(text("Calculate").size(14))
-                    .on_press(Message::Calculate)
-                    .padding(10),
-                button(text("Clear").size(14))
-                    .on_press(Message::Clear)
-                    .padding(10),
-            ]
-            .spacing(10),
-        ]
-        .spacing(10)
-        .width(Length::FillPortion(1));
+fn calculate_back_of_envelope(dau_str: &str, ratio_str: &str, size_str: &str) -> Result<(f64, f64, f64), String> {
+    let dau = dau_str.parse::<u64>()
+        .map_err(|_| "Invalid Daily Active User number".to_string())?;
+    
+    let size = size_str.parse::<f64>()
+        .map_err(|_| "Invalid data size".to_string())?;
 
-        let right_column = if self.read_per_second != 0.0 || self.write_per_second != 0.0 {
-            let kb = self.storage_used_per_year / 1024;
-            let mb = kb / 1024;
-            let gb = mb / 1024;
-            let tb = gb / 1024;
-            let pb = tb / 1024;
+    let ratio: Vec<&str> = ratio_str.split(':').collect();
+    if ratio.len() != 2 {
+        return Err("Invalid ratio format. Use format like '1:1' or '10:1'".to_string());
+    }
 
-            column![
-                row![
-                    text("Results").size(16),
-                    button(text("📋 Copy").size(12))
-                        .on_press(Message::CopyToClipboard)
-                        .padding([5, 10]),
-                ]
-                .spacing(10)
-                .align_y(iced::Alignment::Center),
-                text("Read per second").size(14),
-                text(format!("{:.6} rps", self.read_per_second)).size(14),
-                text("Write per second").size(14),
-                text(format!("{:.6} tps", self.write_per_second)).size(14),
-                text("Storage used per year (roughly calculated from Write per second)").size(14),
-                text(format!("{} Byte", self.storage_used_per_year)).size(12),
-                text(format!("{} KB", kb)).size(12),
-                text(format!("{} MB", mb)).size(12),
-                text(format!("{} GB", gb)).size(12),
-                text(format!("{} TB", tb)).size(12),
-                text(format!("{} PB", pb)).size(12),
-                text("The rest, Sum/Multiply them by yourself, you already got foundation value")
-                    .size(14),
-            ]
-            .spacing(10)
-            .width(Length::FillPortion(1))
-        } else {
-            column![].width(Length::FillPortion(1))
-        };
+    let read_ratio = ratio[0].parse::<f64>()
+        .map_err(|_| "Invalid read ratio".to_string())?;
+    let write_ratio = ratio[1].parse::<f64>()
+        .map_err(|_| "Invalid write ratio".to_string())?;
 
-        let mut content = Column::new()
-            .spacing(20)
-            .push(description)
-            .push(row![left_column, right_column].spacing(20));
+    let read_per_second = (dau as f64 * read_ratio) / SECOND_IN_DAY as f64;
+    let write_per_second = (dau as f64 * write_ratio) / SECOND_IN_DAY as f64;
+    let storage_used_per_year = (size * write_per_second) * DAY_IN_YEAR as f64;
 
-        if let Some(error) = &self.error {
-            content = content.push(text(error).size(14).style(
-|_theme| iced::widget::text::Style {
-                    color: Some(iced::Color::from_rgb(0.8, 0.2, 0.2))
-                }
-            ));
+    Ok((read_per_second, write_per_second, storage_used_per_year))
+}
+
+fn format_results(read_per_second: f64, write_per_second: f64, storage_used_per_year: u64) -> String {
+    if read_per_second == 0.0 && write_per_second == 0.0 {
+        return String::new();
+    }
+
+    let kb = storage_used_per_year / 1024;
+    let mb = kb / 1024;
+    let gb = mb / 1024;
+    let tb = gb / 1024;
+    let pb = tb / 1024;
+
+    format!(
+        "Back of the Envelope Calculations Results:\n\n\
+        Read per second: {:.6} rps\n\
+        Write per second: {:.6} tps\n\n\
+        Storage used per year (roughly calculated from Write per second):\n\
+        {} Byte\n\
+        {} KB\n\
+        {} MB\n\
+        {} GB\n\
+        {} TB\n\
+        {} PB\n\n\
+        The rest, Sum/Multiply them by yourself, you already got foundation value",
+        read_per_second,
+        write_per_second,
+        storage_used_per_year,
+        kb,
+        mb,
+        gb,
+        tb,
+        pb
+    )
+}
+
+#[component]
+pub fn SystemDesignToolView() -> Element {
+    let mut daily_active_user = use_signal(String::new);
+    let mut read_write_ratio = use_signal(String::new);
+    let mut data_size = use_signal(String::new);
+    let mut read_per_second = use_signal(|| 0.0f64);
+    let mut write_per_second = use_signal(|| 0.0f64);
+    let mut storage_used_per_year = use_signal(|| 0u64);
+    let mut error = use_signal(|| None::<String>);
+
+    let calculate = move |_| {
+        match calculate_back_of_envelope(&daily_active_user.read(), &read_write_ratio.read(), &data_size.read()) {
+            Ok((rps, wps, storage)) => {
+                read_per_second.set(rps);
+                write_per_second.set(wps);
+                storage_used_per_year.set(storage as u64);
+                error.set(None);
+            }
+            Err(e) => {
+                error.set(Some(e));
+            }
         }
+    };
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(20)
-            .into()
+    let clear = move |_| {
+        daily_active_user.set(String::new());
+        read_write_ratio.set(String::new());
+        data_size.set(String::new());
+        read_per_second.set(0.0);
+        write_per_second.set(0.0);
+        storage_used_per_year.set(0);
+        error.set(None);
+    };
+
+    let copy_to_clipboard = move |_| {
+        let results = format_results(read_per_second(), write_per_second(), storage_used_per_year());
+        if !results.is_empty() {
+            if let Ok(mut clipboard) = Clipboard::new() {
+                let _ = clipboard.set_text(results);
+            }
+        }
+    };
+
+    rsx! {
+        div {
+            style: "padding: 20px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;",
+                
+                h1 {
+                    style: "font-size: 24px; margin-bottom: 5px; color: #2c3e50;",
+                    "Back of the envelope calculations"
+                }
+                
+                div {
+                    style: "margin-bottom: 20px;",
+                    
+                    h3 {
+                        style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50;",
+                        "Assumptions:"
+                    }
+                    
+                    ul {
+                        style: "margin: 0; padding-left: 20px; font-size: 12px; color: #2c3e50;",
+                        li { "Assume DAU (Daily Active User)" }
+                        li { "Adjust read:write ratio - one of them need to be 1 for based calculation" }
+                        li { "Adjust number you want to calculate read/write per seconds" }
+                        li { "Assume data size of interest payload" }
+                    }
+                }
+                
+                div {
+                    style: "display: flex; gap: 20px;",
+                    
+                    // Left column - inputs
+                    div {
+                        style: "flex: 1;",
+                        
+                        div {
+                            style: "margin-bottom: 10px;",
+                            
+                            h3 {
+                                style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50;",
+                                "Daily Active User"
+                            }
+                            
+                            input {
+                                style: "width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px;",
+                                placeholder: "Daily Active User",
+                                value: "{daily_active_user.read()}",
+                                oninput: move |event| {
+                                    daily_active_user.set(event.value());
+                                    error.set(None);
+                                }
+                            }
+                        }
+                        
+                        div {
+                            style: "margin-bottom: 10px;",
+                            
+                            h3 {
+                                style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50;",
+                                "Read:Write Ratio"
+                            }
+                            
+                            input {
+                                style: "width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px;",
+                                placeholder: "Read:Write Ratio (e.g., 1:1, 10:1)",
+                                value: "{read_write_ratio.read()}",
+                                oninput: move |event| {
+                                    read_write_ratio.set(event.value());
+                                    error.set(None);
+                                }
+                            }
+                        }
+                        
+                        div {
+                            style: "margin-bottom: 10px;",
+                            
+                            h3 {
+                                style: "font-size: 16px; margin-bottom: 5px; color: #2c3e50;",
+                                "Data size of interest payload (Byte)"
+                            }
+                            
+                            input {
+                                style: "width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 14px;",
+                                placeholder: "Data size of interest payload in byte",
+                                value: "{data_size.read()}",
+                                oninput: move |event| {
+                                    data_size.set(event.value());
+                                    error.set(None);
+                                }
+                            }
+                        }
+                        
+                        div {
+                            style: "display: flex; gap: 10px;",
+                            
+                            button {
+                                style: "padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                                onclick: calculate,
+                                "Calculate"
+                            }
+                            
+                            button {
+                                style: "padding: 10px 20px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;",
+                                onclick: clear,
+                                "Clear"
+                            }
+                        }
+                    }
+                    
+                    // Right column - results
+                    if read_per_second() != 0.0 || write_per_second() != 0.0 {
+                        div {
+                            style: "flex: 1;",
+                            
+                            div {
+                                style: "display: flex; align-items: center; gap: 10px; margin-bottom: 10px;",
+                                
+                                h3 {
+                                    style: "font-size: 16px; color: #2c3e50; margin: 0;",
+                                    "Results"
+                                }
+                                
+                                button {
+                                    style: "padding: 5px 10px; background-color: #34495e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;",
+                                    onclick: copy_to_clipboard,
+                                    "📋 Copy"
+                                }
+                            }
+                            
+                            div {
+                                style: "margin-bottom: 10px;",
+                                p {
+                                    style: "font-size: 14px; margin: 2px 0; color: #2c3e50;",
+                                    "Read per second"
+                                }
+                                p {
+                                    style: "font-size: 14px; margin: 2px 0; color: #2c3e50; font-weight: bold;",
+                                    "{read_per_second():.6} rps"
+                                }
+                            }
+                            
+                            div {
+                                style: "margin-bottom: 10px;",
+                                p {
+                                    style: "font-size: 14px; margin: 2px 0; color: #2c3e50;",
+                                    "Write per second"
+                                }
+                                p {
+                                    style: "font-size: 14px; margin: 2px 0; color: #2c3e50; font-weight: bold;",
+                                    "{write_per_second():.6} tps"
+                                }
+                            }
+                            
+                            div {
+                                style: "margin-bottom: 10px;",
+                                p {
+                                    style: "font-size: 14px; margin: 2px 0; color: #2c3e50;",
+                                    "Storage used per year (roughly calculated from Write per second)"
+                                }
+                                p {
+                                    style: "font-size: 12px; margin: 1px 0; color: #2c3e50;",
+                                    "{storage_used_per_year()} Byte"
+                                }
+                                p {
+                                    style: "font-size: 12px; margin: 1px 0; color: #2c3e50;",
+                                    "{storage_used_per_year() / 1024} KB"
+                                }
+                                p {
+                                    style: "font-size: 12px; margin: 1px 0; color: #2c3e50;",
+                                    "{storage_used_per_year() / 1024 / 1024} MB"
+                                }
+                                p {
+                                    style: "font-size: 12px; margin: 1px 0; color: #2c3e50;",
+                                    "{storage_used_per_year() / 1024 / 1024 / 1024} GB"
+                                }
+                                p {
+                                    style: "font-size: 12px; margin: 1px 0; color: #2c3e50;",
+                                    "{storage_used_per_year() / 1024 / 1024 / 1024 / 1024} TB"
+                                }
+                                p {
+                                    style: "font-size: 12px; margin: 1px 0; color: #2c3e50;",
+                                    "{storage_used_per_year() / 1024 / 1024 / 1024 / 1024 / 1024} PB"
+                                }
+                            }
+                            
+                            p {
+                                style: "font-size: 14px; color: #2c3e50; margin-top: 10px;",
+                                "The rest, Sum/Multiply them by yourself, you already got foundation value"
+                            }
+                        }
+                    }
+                }
+                
+            // Error message
+            if let Some(err) = error.read().as_ref() {
+                div {
+                    style: "margin-top: 20px; padding: 10px; background-color: #ffebee; border: 1px solid #f44336; border-radius: 4px; color: #c62828; font-size: 14px;",
+                    "{err}"
+                }
+            }
+        }
     }
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Effless is a Rust desktop application built with the Iced GUI framework. It provides a collection of developer tools in a single interface, including encoders/decoders, generators, calculators, and system design utilities.
+Effless is a Rust desktop application built with the Dioxus GUI framework. It provides a collection of developer tools in a single interface, including encoders/decoders, generators, calculators, and system design utilities.
 
 ## Development Commands
 
@@ -37,51 +37,59 @@ cargo test
 
 ## Architecture
 
-### Core Structure
-- **Main Application** (`src/main.rs`): Iced Application implementation with sidebar navigation and tool area
+### Core Structure  
+- **Main Application** (`src/main.rs`): Dioxus desktop application with reactive state management, sidebar navigation and tool area
 - **Tool System** (`src/tools/mod.rs`): Modular tool architecture using enums for type safety
-- **Individual Tools** (`src/tools/*.rs`): Self-contained tool implementations
+- **Individual Tools** (`src/tools/*.rs`): Self-contained tool implementations with proper Dioxus component patterns
+- **Business Logic** (`src/logic/mod.rs`): Separated testable business logic modules for core functionality
 
 ### Tool Architecture Pattern
 Each tool follows a consistent pattern:
-- Enum-based message system for UI events
-- State management through update() method
-- View generation through view() method returning Iced Elements
-- Integration with system clipboard via arboard crate
+- **Struct Pattern**: Tool struct with `new()` and `view()` methods that delegate to component functions
+- **Component Pattern**: Proper `#[component]` functions with `use_signal` hooks at the top level
+- **Hooks Compliance**: All hooks (`use_signal`, `use_effect`) called at component top level, never conditionally
+- **Business Logic Separation**: UI components use `crate::logic::*` modules for testable business operations
+- **CSS-in-JS Styling**: Consistent layout with proper padding, flexbox, and overflow control to prevent scrolling
+- **Clipboard Integration**: Copy functionality via arboard crate for all tools
 
 ### Available Tools
-- **JSON**: Formatter and minifier for JSON data (Converters category)
-- **Base64**: Encoder/decoder for Base64 text (Encoders/Decoders category)
-- **URL**: URL encoding/decoding utilities (Encoders/Decoders category)
-- **Hash**: Multiple hash algorithms (SHA2, MD5) with checksum generation (Generators category)
-- **UUID**: UUID v4 generation (Generators category)
-- **ULID**: ULID generation for distributed systems (Generators category)
-- **QR Code**: QR code generator with image output (Generators category)
-- **Icon Generator**: Simple icon generator with text and shape selection (circle, square), customizable colors and sizes, with PNG/ICO download support (Generators category)
-- **Distance**: Haversine distance calculator for geographical coordinates (Calculators category)
+- **Base64**: Encoder/decoder for Base64 text using business logic (Encoders/Decoders category)
+- **UUID**: UUID v4 generation with counter tracking (Generators category)
+- **ULID**: ULID generation for distributed systems with timestamp sorting (Generators category)
+- **QR Code**: QR code generator placeholder with input validation (Generators category)
+- **Icon Generator**: Simple icon generator with text overlays, shape selection, and color customization (Generators category)
+- **Distance**: Haversine distance calculator using validated coordinate business logic (Calculators category)
 - **System Design**: Back-of-the-envelope calculations for system architecture planning with DAU, read/write ratios, and storage estimation (System Design category)
 
 ### Key Dependencies
-- `iced`: GUI framework (v0.13.1)
-- `tokio`: Async runtime
-- `arboard`: Clipboard integration
-- `image`: Image processing for icon generation
-- `rfd`: Native file dialog for downloads
-- `ico`: ICO format conversion
-- Tool-specific crates: `base64`, `serde_json`, `uuid`, `ulid`, `qrcode`, `sha2`, `md5`, `url`, `chrono`
+- `dioxus`: Modern reactive GUI framework (v0.6) with desktop support and component-based architecture
+- `dioxus-desktop`: Desktop platform integration for native window management
+- `tokio`: Async runtime for Dioxus desktop applications
+- `arboard`: System clipboard integration for copy functionality
+- Tool-specific crates: `base64`, `uuid`, `ulid`, `percent-encoding`, `url`, `sha2`, `md5`
 
 ### Adding New Tools
 1. Create new module in `src/tools/`
-2. Add tool type to `ToolType` enum in `src/tools/mod.rs`
-3. Implement tool struct with `new()`, `update()`, and `view()` methods
-4. Add tool to `Tool` enum and match patterns
-5. Update sidebar tool list in `src/main.rs`
+2. Add tool type to `ToolType` enum in `src/tools/mod.rs`  
+3. Implement tool struct with `new()` and `view()` methods that delegate to component functions
+4. Create `#[component]` function with proper hooks usage at the top level
+5. Add business logic to `src/logic/` if needed for testable operations
+6. Add tool to `Tool` enum and match patterns in `tools/mod.rs`
+7. Update sidebar tool list in `src/main.rs`
+8. Follow consistent CSS styling: `padding: 20px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;`
+
+### Important Dioxus Patterns
+- **Hooks Rules**: Always call `use_signal`, `use_effect` at component top level, never conditionally
+- **Component Structure**: Use `#[component] pub fn ComponentView() -> Element` pattern
+- **State Management**: Use `use_signal` for reactive state, avoid direct state in structs
+- **Error Prevention**: Proper CSS layout prevents content overflow and scrolling issues
 
 ### UI Layout
-- Two-column layout: sidebar (250px) + main tool area
+- Two-column layout: sidebar (250px) + main tool area using CSS absolute positioning
 - Sidebar includes search functionality and categorized tool list organized by function type
-- Tool area displays the currently selected tool interface
-- Consistent styling with Iced's built-in themes
+- Tool area displays the currently selected tool interface with reactive state
+- Proper viewport control: `position: absolute; top: 0; left: 0; right: 0; bottom: 0` prevents scrolling
+- Consistent styling with CSS-in-JS approach for maintainability
 
 ## System Design Tool Details
 
@@ -114,30 +122,26 @@ Comprehensive test suite covers:
 - Error conditions (invalid ratios, malformed inputs)
 - High read ratio scenarios (10:1, 100:1 patterns)
 
-## Icon Generator Tool Details
+## Business Logic Architecture
 
-The Icon Generator tool creates simple icons with text overlays on colored backgrounds:
+### Logic Modules (`src/logic/`)
+- **base64_logic.rs**: Base64 encoding/decoding with proper error handling
+- **distance_logic.rs**: Haversine distance calculations with coordinate validation
+- Each module provides struct-based API with comprehensive unit test coverage (18 tests passing)
 
-### Key Features
-- **Text Input**: Up to 3 characters maximum for optimal icon readability
-- **Shape Selection**: Circle or square background shapes
-- **Size Customization**: Configurable icon size in pixels (default 128px)
-- **Color Customization**: Hex color picker for background and text colors
-- **Live Preview**: Real-time preview of generated icons
-- **Multi-format Export**: Download as PNG or ICO formats
-- **Base64 Export**: Copy Base64-encoded icon data to clipboard
-- **Crash Protection**: Comprehensive error handling prevents application crashes
+### Benefits
+- **Separation of Concerns**: Business logic separated from UI components  
+- **Testability**: Logic modules have comprehensive unit test coverage
+- **Reusability**: Business logic can be shared across components
+- **Error Handling**: Structured error types for robust operation
 
-### Technical Implementation
-- **Bitmap Font Rendering**: Custom 5x7 pixel bitmap patterns for A-Z and 0-9 characters
-- **Dynamic Font Sizing**: Automatic scaling based on character count and icon size
-- **Pixel-perfect Drawing**: Direct pixel manipulation for crisp text rendering
-- **Character Spacing**: Proper spacing algorithm for multi-character icons
-- **Shape Rendering**: Mathematical circle and square background generation
-- **Format Conversion**: PNG to ICO conversion for Windows compatibility
+### Usage Pattern
+```rust
+use crate::logic::base64_logic::Base64Logic;
 
-### Usage Guidelines
-- Keep text short (1-3 characters) for best results
-- Use high contrast between background and text colors
-- Recommended sizes: 16px, 32px, 64px, 128px, 256px for standard icon usage
-- ICO format recommended for Windows applications, PNG for web/cross-platform
+let encoded = Base64Logic::encode(input);
+match Base64Logic::decode(input) {
+    Ok(decoded) => /* handle success */,
+    Err(error) => /* handle error */,
+}
+```

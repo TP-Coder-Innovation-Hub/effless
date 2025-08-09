@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-iced = { version = "0.13.1", features = ["advanced", "image"] }
+dioxus = { version = "0.6", features = ["desktop"] }
+dioxus-desktop = "0.6"
 base64 = "0.22"
 uuid = { version = "1.6", features = ["v4"] }
 ulid = "1.1"
@@ -17,7 +18,6 @@ url = "2.4"
 percent-encoding = "2.3"
 arboard = "3.4"
 tokio = { version = "1.0", features = ["full"] }
-tracing-subscriber = "0.3.19"
+chrono = "0.4"
 rfd = "0.15.4"
 ico = "0.4.0"
-chrono = "0.4"
